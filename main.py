@@ -1,103 +1,93 @@
 # main.py
 # ─────────────────────────────────────────────────────────────
-# Entry point — this is the file you run.
-# All it does is define the CLI interface and call into agent/.
-# Keeping CLI logic here means agent/ stays clean and testable.
+# Entry point — natural language input, no flags needed.
+# User just describes what they want in plain English.
 # ─────────────────────────────────────────────────────────────
 
+import os
 import click
 from agent.loop import run_agent
 from agent.core import generate_code, extract_code
 from agent.prompts import SYSTEM_PROMPT, user_task_prompt
-from agent.utils import save_code, auto_filename, print_header, print_footer
+from agent.utils import save_code, print_header, print_footer
+from agent.parser import parse_intent
 
 
 @click.command()
-@click.argument("task")
-@click.option(
-    "--output", "-o",
-    default=None,
-    help="Save generated code to this file path (e.g. scripts/sorter.py)"
-)
-@click.option(
-    "--retries", "-r",
-    default=3,
-    show_default=True,
-    help="Max number of fix attempts if code fails"
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Generate code but do NOT run it — just print it"
-)
-@click.option(
-    "--save",
-    is_flag=True,
-    help="Auto-save code to a file named after the task"
-)
-def main(task, output, retries, dry_run, save):
+@click.argument("request", nargs=-1, required=True)
+@click.option("--retries", "-r", default=3, show_default=True,
+              help="Max fix attempts")
+@click.option("--dry-run", is_flag=True,
+              help="Show code without running it")
+def main(request, retries, dry_run):
     """
     \b
-    CLI Coding Assistant — describe a task, get working Python code.
-
-    \b
-    The agent will:
-      1. Generate Python code for your task
-      2. Run it automatically
-      3. If it fails, read the error and fix itself
-      4. Retry up to --retries times
+    CLI Coding Assistant — just describe what you want in plain English.
 
     \b
     Examples:
-      python main.py "print the first 10 fibonacci numbers"
-      python main.py "read a csv and print column names" --output reader.py
-      python main.py "build a number guessing game" --dry-run
-      python main.py "sort a list of dicts by age key" --save --retries 5
+      code "print fibonacci numbers"
+      code "build a calculator and save it to my documents"
+      code "create a snake game on my desktop"
+      code "write a todo app and put it in ~/Projects as todo.py"
+      code "make a password generator and save to documents as passwords.py"
+      code "build a web scraper" --dry-run
     """
 
-    print_header(task)
-    success = False
-    attempt_count = 1
+    # Join all words into one string
+    # Lets user skip quotes if they want:
+    # code build a calculator and save to desktop
+    user_input = " ".join(request)
 
-    # ── Dry run mode ───────────────────────────────────────────
-    # Just generate and print — don't execute anything.
-    # Useful when you want to review code before running it.
-    if dry_run:
+    # ── Parse natural language ─────────────────────────────────
+    click.echo(click.style("\n🧠 Understanding your request...", fg="bright_black"))
+    intent = parse_intent(user_input)
+
+    task      = intent["task"]
+    full_path = intent["full_path"]
+
+    # Show what the agent understood
+    click.echo(click.style(f"   Task:    ", fg="bright_black") +
+               click.style(task, fg="white"))
+
+    if full_path:
+        click.echo(click.style(f"   Save to: ", fg="bright_black") +
+                   click.style(full_path, fg="cyan"))
+    else:
         click.echo(click.style(
-            "\n[Dry run mode — code will not be executed]\n",
-            fg="yellow"
+            "   Save to: not saving — add 'save to documents' or similar to save a file",
+            fg="bright_black"
         ))
+
+    # Create parent directories if needed
+    if full_path:
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+    print_header(task)
+
+    # ── Dry run ────────────────────────────────────────────────
+    if dry_run:
+        click.echo(click.style("\n[Dry run — will not execute]\n", fg="yellow"))
         conversation = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": user_task_prompt(task)}
+            {"role": "user",   "content": user_task_prompt(task, full_path)}
         ]
-        raw = generate_code(conversation)
+        raw  = generate_code(conversation)
         code = extract_code(raw)
         click.echo(code)
-
-        # Still save if requested
-        path = output or (auto_filename(task) if save else None)
-        if path:
-            save_code(code, path)
-
+        if full_path:
+            save_code(code, full_path)
         print_footer(1, success=True)
         return
 
-    # ── Normal mode — generate, run, fix loop ──────────────────
-    code = run_agent(task, max_retries=retries)
+    # ── Normal run ─────────────────────────────────────────────
+    code = run_agent(task, max_retries=retries, save_path=full_path)
 
-    # Determine if it succeeded by checking if last run passed.
-    # run_agent returns early on success, so if we got code back
-    # we count it as done (even if it needed retries).
-    success = True
+    # Save final code if path was given
+    if full_path and code:
+        save_code(code, full_path)
 
-    # ── Save output ────────────────────────────────────────────
-    # Priority: --output path > --save (auto name) > don't save
-    path = output or (auto_filename(task) if save else None)
-    if path:
-        save_code(code, path)
-
-    print_footer(attempt_count, success=success)
+    print_footer(1, success=True)
 
 
 if __name__ == "__main__":

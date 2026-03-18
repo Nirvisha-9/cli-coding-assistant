@@ -13,7 +13,7 @@ from agent.core import generate_code, extract_code, execute_code
 from agent.prompts import SYSTEM_PROMPT, user_task_prompt, fix_prompt
 
 
-def run_agent(task: str, max_retries: int = 3) -> str:
+def run_agent(task: str, max_retries: int = 3, save_path: str = None) -> str:
     """
     Main agent loop.
 
@@ -50,7 +50,7 @@ def run_agent(task: str, max_retries: int = 3) -> str:
         },
         {
             "role": "user",
-            "content": user_task_prompt(task)
+            "content": user_task_prompt(task, save_path)
         }
     ]
 

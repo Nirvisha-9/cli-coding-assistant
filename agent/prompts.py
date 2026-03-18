@@ -20,7 +20,13 @@ Rules:
 
 
 # Used on the very first message — tells the LLM what to build
-def user_task_prompt(task: str) -> str:
+def user_task_prompt(task: str, save_path: str = None) -> str:
+    if save_path:
+        return (
+            f"Write Python code to: {task}\n\n"
+            f"IMPORTANT: Save any created files to this exact path: {save_path}\n"
+            f"Use the full absolute path as given. Do not change it."
+        )
     return f"Write Python code to: {task}"
 
 
