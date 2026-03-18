@@ -107,7 +107,7 @@ def execute_code(code: str) -> tuple[str, str, int]:
 
     try:
         result = subprocess.run(
-            ["python", tmp_path],
+            ["python3", tmp_path],
             capture_output=True,
             text=True,
             timeout=30
