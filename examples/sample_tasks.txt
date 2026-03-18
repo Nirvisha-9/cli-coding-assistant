@@ -1,0 +1,23 @@
+# Sample tasks to demo the CLI Coding Assistant
+# Run any of these like: python main.py "<task>"
+
+# Easy — great for quick demos
+print the first 10 fibonacci numbers
+print all prime numbers between 1 and 100
+reverse a string and print it
+print a 5x5 multiplication table
+count vowels in the string hello world
+
+# Medium — shows real usefulness
+sort a list of dicts by the age key and print the result
+find the most common word in a paragraph of sample text
+generate 5 random passwords with 12 characters each
+flatten a nested list into a single list
+implement binary search on a sorted list
+
+# Hard — shows the self-healing loop in action
+implement a stack class with push pop and peek then demo it
+write a Caesar cipher that encodes and decodes a message
+find all anagram pairs in a list of words
+implement merge sort and sort 10 random numbers
+build a calculator using a function dispatch table
