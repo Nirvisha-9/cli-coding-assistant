@@ -5,7 +5,7 @@ A command-line tool that turns plain English into working Python code — powere
 ## Install
 
 ```bash
-pip install git+https://github.com/YOUR_USERNAME/cli-coding-assistant.git
+pip install git+https://github.com/Nirvisha-9/cli-coding-assistant.git
 ```
 
 Then set your Groq API key (get one free at [console.groq.com](https://console.groq.com)):
@@ -27,9 +27,3 @@ code "make a password generator and save to documents as passwords.py"
 code "build a web scraper" --dry-run
 ```
 
-## Options
-
-| Flag | Description |
-|---|---|
-| `--retries` / `-r` | Max fix attempts (default: 3) |
-| `--dry-run` | Show generated code without running it |
