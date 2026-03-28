@@ -8,17 +8,20 @@ from agent.prompts import SYSTEM_PROMPT, user_task_prompt
 from agent.utils import save_code, print_header, print_footer
 from agent.parser import parse_intent
 from agent.chat import run_chat
+from agent.explainer import explain_code, print_explanation
 
 
 @click.command()
 @click.argument("request", nargs=-1, required=False)
 @click.option("--chat", "-c", is_flag=True,
               help="Start an interactive chat session")
+@click.option("--explain", "-e", is_flag=True,
+              help="Explain the generated code in plain English")
 @click.option("--retries", "-r", default=3, show_default=True,
               help="Max fix attempts")
 @click.option("--dry-run", is_flag=True,
               help="Show code without running it")
-def main(request, chat, retries, dry_run):
+def main(request, chat, explain, retries, dry_run):
     """
     \b
     CLI Coding Assistant — describe a task, get working Python code.
@@ -27,6 +30,7 @@ def main(request, chat, retries, dry_run):
     Single task mode:
       code "print fibonacci numbers"
       code "build a calculator and save it to my documents"
+      code "implement binary search" --explain
       code "create a snake game on my desktop as snake.py"
 
     \b
@@ -72,7 +76,7 @@ def main(request, chat, retries, dry_run):
 
     print_header(task)
 
-    # Dry run
+    # ── Dry run ────────────────────────────────────────────────
     if dry_run:
         click.echo(click.style("\n[Dry run — will not execute]\n", fg="yellow"))
         conversation = [
@@ -84,13 +88,24 @@ def main(request, chat, retries, dry_run):
         click.echo(code)
         if full_path:
             save_code(code, full_path)
+        if explain:
+            click.echo(click.style("\n🧠 Explaining...", fg="bright_black"))
+            print_explanation(explain_code(code))
         print_footer(1, success=True)
         return
 
-    # Normal run
+    # ── Normal run ─────────────────────────────────────────────
     code = run_agent(task, max_retries=retries, save_path=full_path)
+
     if full_path and code:
         save_code(code, full_path)
+
+    # ── Explain if flag set ────────────────────────────────────
+    if explain and code:
+        click.echo(click.style("\n🧠 Explaining the code...", fg="bright_black"))
+        explanation = explain_code(code)
+        print_explanation(explanation)
+
     print_footer(1, success=True)
 
 

@@ -41,6 +41,15 @@ def fix_prompt(error: str) -> str:
     )
 
 
+# Prompt used to ask the LLM to explain a piece of code in plain English.
+def explain_prompt(code: str) -> str:
+    return (
+        "Explain the following Python code in plain English. "
+        "Describe what it does, why the main steps exist, and any important "
+        "edge-cases or assumptions. Keep the explanation clear and concise.\n\n"
+        f"CODE:\n{code}"
+    )
+
 # Used for dry-run mode — same as system prompt but explicit about no execution
 DRY_RUN_SYSTEM_PROMPT = """You are an expert Python developer.
 Write clean, working Python code for the given task.
