@@ -119,6 +119,23 @@ def run_chat(max_retries: int = 3):
             _print_help()
             continue
 
+        # ── Check if this is an explanation request ───────────
+        # e.g. "explain binary search" or "what is quicksort"
+        if any(user_input.lower().startswith(t) for t in (
+            "explain", "what is", "what are", "how does",
+            "how do", "tell me about", "describe"
+        )):
+            from agent.explainer import explain_code, explain_topic, print_explanation
+            if last_code and user_input.lower() in ("explain", "explain it", "explain this"):
+                # Explain the last generated code
+                click.echo(click.style("\n🧠 Explaining last code...", fg="bright_black"))
+                print_explanation(explain_code(last_code))
+            else:
+                # Explain the topic they mentioned
+                click.echo(click.style("\n🧠 Explaining...", fg="bright_black"))
+                print_explanation(explain_topic(user_input))
+            continue
+
         # ── Check if user mentioned saving in their message ────
         # e.g. "write a calculator and save to my desktop"
         # We parse the intent to extract task + path

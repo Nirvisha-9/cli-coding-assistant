@@ -193,3 +193,19 @@ def _generate_filename(task: str) -> str:
         return "output.py"
 
     return "_".join(meaningful) + ".py"
+
+# Keywords that signal the user wants an explanation
+# not code generation
+EXPLAIN_TRIGGERS = [
+    "explain", "what is", "what are", "how does",
+    "how do", "tell me about", "describe", "walk me through",
+    "what's the difference", "help me understand", "break down"
+]
+
+def is_explanation_request(user_input: str) -> bool:
+    """
+    Returns True if the user wants an explanation
+    rather than code to be generated and run.
+    """
+    lowered = user_input.lower().strip()
+    return any(lowered.startswith(trigger) for trigger in EXPLAIN_TRIGGERS)

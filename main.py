@@ -6,9 +6,9 @@ from agent.loop import run_agent
 from agent.core import generate_code, extract_code
 from agent.prompts import SYSTEM_PROMPT, user_task_prompt
 from agent.utils import save_code, print_header, print_footer
-from agent.parser import parse_intent
+from agent.parser import parse_intent, is_explanation_request
 from agent.chat import run_chat
-from agent.explainer import explain_code, print_explanation
+from agent.explainer import explain_code, explain_topic, print_explanation
 
 
 @click.command()
@@ -92,6 +92,15 @@ def main(request, chat, explain, retries, dry_run):
             click.echo(click.style("\n🧠 Explaining...", fg="bright_black"))
             print_explanation(explain_code(code))
         print_footer(1, success=True)
+        return
+
+    # ── Detect explanation-style requests and handle them ────────
+    # If the user asked for an explanation (e.g. "explain binary search")
+    # we answer with an explanation instead of generating/running code.
+    if is_explanation_request(user_input):
+        click.echo(click.style("\n🧠 Explaining...\n", fg="bright_black"))
+        explanation = explain_topic(user_input)
+        print_explanation(explanation)
         return
 
     # ── Normal run ─────────────────────────────────────────────

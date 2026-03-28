@@ -66,3 +66,43 @@ def print_explanation(explanation: str) -> None:
         "└─────────────────────────────────────────\n",
         fg="bright_cyan"
     ))
+
+
+def explain_topic(topic: str) -> str:
+    """
+    Explain a programming concept or topic in plain English.
+    Used when user asks 'explain X' without generating code first.
+    """
+    import os
+    from groq import Groq
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a patient coding teacher. "
+                    "Explain programming concepts clearly and simply. "
+                    "Always include a short code example at the end."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"{topic}\n\nExplain clearly with:\n"
+                           f"1. Simple one-line summary\n"
+                           f"2. How it works step by step\n"
+                           f"3. When to use it\n"
+                           f"4. A short Python example\n\n"
+                           f"Keep it under 20 lines. Plain English only."
+            }
+        ],
+        temperature=0.5,
+        max_tokens=600
+    )
+
+    return response.choices[0].message.content.strip()
