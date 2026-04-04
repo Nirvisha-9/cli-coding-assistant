@@ -91,12 +91,104 @@ def extract_code(raw: str) -> str:
 # The finally block always deletes the temp file — even if an error occurs.
 # This prevents your /tmp folder filling up with leftover .py files.
 
-def execute_code(code: str) -> tuple[str, str, int]:
+def _execute_java(code: str) -> tuple[str, str, int]:
+    """Compile and run Java code."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Java requires filename to match class name — always Main
+        src = os.path.join(tmpdir, "Main.java")
+        with open(src, "w") as f:
+            f.write(code)
+        # Compile
+        compile_result = subprocess.run(
+            ["javac", src],
+            capture_output=True, text=True, timeout=30
+        )
+        if compile_result.returncode != 0:
+            return "", compile_result.stderr, 1
+        # Run — class name is always Main
+        run_result = subprocess.run(
+            ["java", "-cp", tmpdir, "Main"],
+            capture_output=True, text=True, timeout=30
+        )
+        return run_result.stdout, run_result.stderr, run_result.returncode
+
+
+def _execute_c(code: str) -> tuple[str, str, int]:
+    """Compile and run C code."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        src    = os.path.join(tmpdir, "main.c")
+        binary = os.path.join(tmpdir, "main")
+        with open(src, "w") as f:
+            f.write(code)
+        # Compile with gcc
+        compile_result = subprocess.run(
+            ["gcc", src, "-o", binary],
+            capture_output=True, text=True, timeout=30
+        )
+        if compile_result.returncode != 0:
+            return "", compile_result.stderr, 1
+        # Run
+        run_result = subprocess.run(
+            [binary],
+            capture_output=True, text=True, timeout=30
+        )
+        return run_result.stdout, run_result.stderr, run_result.returncode
+
+
+def _execute_rust(code: str) -> tuple[str, str, int]:
+    """Compile and run a Rust program using rustc. Returns (stdout, stderr, returncode)."""
+    import shutil
+
+    tmpdir = tempfile.mkdtemp(prefix="ccassist_rust_")
+    src_path = os.path.join(tmpdir, "main.rs")
+    exe_path = os.path.join(tmpdir, "a.out")
+
+    with open(src_path, "w") as f:
+        f.write(code)
+
+    try:
+        # Compile
+        compile_proc = subprocess.run(
+            ["rustc", src_path, "-o", exe_path],
+            capture_output=True,
+            text=True,
+            timeout=20
+        )
+        if compile_proc.returncode != 0:
+            return "", compile_proc.stderr, compile_proc.returncode
+
+        # Run
+        run_proc = subprocess.run(
+            [exe_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        return run_proc.stdout, run_proc.stderr, run_proc.returncode
+
+    except subprocess.TimeoutExpired:
+        return "", "Error: Rust program timed out", 1
+
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def execute_code(code: str, lang: str = "python") -> tuple[str, str, int]:
     """
-    Write code to a temp file and run it in a subprocess.
-    Returns (stdout, stderr, returncode).
-    returncode 0 = success, non-zero = failure.
+    Write code to a temp file and run it in a subprocess (language-aware).
+    Returns (stdout, stderr, returncode). returncode 0 = success.
     """
+    # Special-case compiled languages
+    if lang == "rust":
+        return _execute_rust(code)
+    if lang == "java":
+        return _execute_java(code)
+    if lang == "c":
+        return _execute_c(code)
+
+    # Default: treat as Python
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".py",
